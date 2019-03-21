@@ -56,13 +56,15 @@ V2_DEF = dict(
         (slim.conv2d, slim.separable_conv2d): {'padding': 'SAME'}
     },
     spec=[
-        op(slim.conv2d, stride=2, num_outputs=32, kernel_size=[3, 3]),
-        op(ops.expanded_conv,
+        #op(slim.conv2d, stride=2, num_outputs=32, kernel_size=[3, 3]),
+        
+        op(slim.conv2d, stride=2, num_outputs=24, kernel_size=[3, 3]),
+	op(ops.expanded_conv,
            expansion_size=expand_input(1, divisible_by=1),
            num_outputs=16),
         op(ops.expanded_conv, stride=2, num_outputs=24),
         op(ops.expanded_conv, stride=1, num_outputs=24),
-        op(ops.expanded_conv, stride=2, num_outputs=32),
+        op(ops.expanded_conv, stride=2, num_outputs=24),
         op(ops.expanded_conv, stride=1, num_outputs=32),
         op(ops.expanded_conv, stride=1, num_outputs=32),
         op(ops.expanded_conv, stride=2, num_outputs=64),
