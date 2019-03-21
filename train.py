@@ -6,6 +6,8 @@ import argparse
 import tensorflow as tf
 from tensorflow.contrib import slim
 import vgg
+import mobilenet_v2.py
+import mobilenet.py
 from cpm import PafNet
 from pose_dataset import get_dataflow_batch, DataFlowToQueue, CocoPose
 from pose_augment import set_network_input_wh, set_network_scale
@@ -19,11 +21,9 @@ def train():
     parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/vgg/vgg_19.ckpt')
     parser.add_argument('--train_vgg', type=bool, default=True)
     parser.add_argument('--annot_path', type=str,
-                        default='/run/user/1000/gvfs/smb-share:server=server,share=data/yzy/dataset/'
-                                'Realtime_Multi-Person_Pose_Estimation-master/training/dataset/COCO/annotations/')
+                        default='./COCO/annotations/')
     parser.add_argument('--img_path', type=str,
-                        default='/run/user/1000/gvfs/smb-share:server=server,share=data/yzy/dataset/'
-                                'Realtime_Multi-Person_Pose_Estimation-master/training/dataset/COCO/images/')
+                        default='./COCO/images/')
     # parser.add_argument('--annot_path_val', type=str,
     #                     default='/run/user/1000/gvfs/smb-share:server=192.168.1.2,share=data/yzy/dataset/'
     #                             'Realtime_Multi-Person_Pose_Estimation-master/training/dataset/COCO/annotations/'
@@ -90,11 +90,13 @@ def train():
 
     logger.info('initializing model...')
     # define vgg19
-    with slim.arg_scope(vgg.vgg_arg_scope()):
-        vgg_outputs, end_points = vgg.vgg_19(img_normalized)
+    #with slim.arg_scope(vgg.vgg_arg_scope()):
+    #    vgg_outputs, end_points = vgg.vgg_19(img_normalized)
+    with slim.arg_scope(mobilenet_v2.training_scope(is_training=False)):
+        logits, endpoints = mobile_v2.mobilenet(img_normalized)
 
     # get net graph
-    net = PafNet(inputs_x=vgg_outputs, stage_num=args.stage_num, hm_channel_num=args.hm_channels, use_bn=args.use_bn)
+    net = PafNet(inputs_x=logits, stage_num=args.stage_num, hm_channel_num=args.hm_channels, use_bn=args.use_bn)
     hm_pre, paf_pre, added_layers_out = net.gen_net()
 
     # two kinds of loss
