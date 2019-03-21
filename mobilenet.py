@@ -150,7 +150,7 @@ def mobilenet_base(  # pylint: disable=invalid-name
     inputs,
     conv_defs,
     multiplier=1.0,
-    final_endpoint=None,
+    final_endpoint="layer_5",
     output_stride=None,
     use_explicit_padding=False,
     scope=None,

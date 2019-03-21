@@ -6,19 +6,20 @@ import argparse
 import tensorflow as tf
 from tensorflow.contrib import slim
 import vgg
-import mobilenet_v2.py
-import mobilenet.py
+import mobilenet_v2
+import mobilenet
 from cpm import PafNet
 from pose_dataset import get_dataflow_batch, DataFlowToQueue, CocoPose
 from pose_augment import set_network_input_wh, set_network_scale
-
+import pdb
 
 def train():
     parser = argparse.ArgumentParser(description='Training codes for Openpose using Tensorflow')
     parser.add_argument('--batch_size', type=str, default=10)
     parser.add_argument('--continue_training', type=bool, default=False)
     parser.add_argument('--checkpoint_path', type=str, default='checkpoints/train/')
-    parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/vgg/vgg_19.ckpt')
+    # parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/vgg/vgg_19.ckpt')
+    parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/mobilenet/mobilenet_v2_0.75_96.ckpt')
     parser.add_argument('--train_vgg', type=bool, default=True)
     parser.add_argument('--annot_path', type=str,
                         default='./COCO/annotations/')
@@ -90,11 +91,11 @@ def train():
 
     logger.info('initializing model...')
     # define vgg19
-    #with slim.arg_scope(vgg.vgg_arg_scope()):
-    #    vgg_outputs, end_points = vgg.vgg_19(img_normalized)
+    # with slim.arg_scope(vgg.vgg_arg_scope()):
+    #     vgg_outputs, end_points = vgg.vgg_19(img_normalized)
     with slim.arg_scope(mobilenet_v2.training_scope(is_training=False)):
-        logits, endpoints = mobile_v2.mobilenet(img_normalized)
-
+        logits, endpoints = mobilenet_v2.mobilenet(img_normalized)
+    # pdb.set_trace()
     # get net graph
     net = PafNet(inputs_x=logits, stage_num=args.stage_num, hm_channel_num=args.hm_channels, use_bn=args.use_bn)
     hm_pre, paf_pre, added_layers_out = net.gen_net()
@@ -119,22 +120,22 @@ def train():
     learning_rate = tf.train.exponential_decay(1e-4, global_step, steps_per_echo, 0.5, staircase=True)
     trainable_var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='openpose_layers')
     if args.train_vgg:
-        trainable_var_list = trainable_var_list + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='vgg_19')
+        trainable_var_list = trainable_var_list + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='MobilenetV2')
     with tf.name_scope('train'):
         train = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=1e-8).minimize(loss=loss,
                                                                                            global_step=global_step,
                                                                                            var_list=trainable_var_list)
     logger.info('initialize saver...')
-    restorer = tf.train.Saver(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='vgg_19'), name='vgg_restorer')
+    restorer = tf.train.Saver(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='MobilenetV2'), name='mobilenet_restorer')
     saver = tf.train.Saver(trainable_var_list)
 
     logger.info('initialize tensorboard')
     tf.summary.scalar("lr", learning_rate)
     tf.summary.scalar("loss2", loss)
     tf.summary.histogram('img_normalized', img_normalized)
-    tf.summary.histogram('vgg_outputs', vgg_outputs)
+    tf.summary.histogram('mobilenet_outputs', logits)
     tf.summary.histogram('added_layers_out', added_layers_out)
-    tf.summary.image('vgg_out', tf.transpose(vgg_outputs[0:1, :, :, :], perm=[3, 1, 2, 0]), max_outputs=512)
+    tf.summary.image('mobilenet_out', tf.transpose(logits[0:1, :, :, :], perm=[3, 1, 2, 0]), max_outputs=512)
     tf.summary.image('added_layers_out', tf.transpose(added_layers_out[0:1, :, :, :], perm=[3, 1, 2, 0]), max_outputs=128)
     tf.summary.image('paf_gt', tf.transpose(q_vect_split[0][0:1, :, :, :], perm=[3, 1, 2, 0]), max_outputs=38)
     tf.summary.image('hm_gt', tf.transpose(q_heat_split[0][0:1, :, :, :], perm=[3, 1, 2, 0]), max_outputs=19)
@@ -151,7 +152,7 @@ def train():
         writer = tf.summary.FileWriter(checkpoint_path, sess.graph)
         sess.run(tf.group(tf.global_variables_initializer()))
         if args.backbone_net_ckpt_path is not None:
-            logger.info('restoring vgg weights from %s' % args.backbone_net_ckpt_path)
+            logger.info('restoring mobilenet weights from %s' % args.backbone_net_ckpt_path)
             restorer.restore(sess, args.backbone_net_ckpt_path)
         if args.continue_training:
             saver.restore(sess, tf.train.latest_checkpoint(checkpoint_dir=checkpoint_path))

@@ -29,8 +29,8 @@ import functools
 
 import tensorflow as tf
 
-from nets.mobilenet import conv_blocks as ops
-from nets.mobilenet import mobilenet as lib
+import conv_blocks as ops
+import mobilenet as lib
 
 slim = tf.contrib.slim
 op = lib.op
@@ -157,10 +157,11 @@ def mobilenet(input_tensor,
   with slim.arg_scope((lib.depth_multiplier,), **depth_args):
     return lib.mobilenet(
         input_tensor,
-        num_classes=num_classes,
+        num_classes=None,
         conv_defs=conv_defs,
         scope=scope,
         multiplier=depth_multiplier,
+        base_only=True, 
         **kwargs)
 
 mobilenet.default_image_size = 224
