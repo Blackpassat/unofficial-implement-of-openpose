@@ -150,7 +150,7 @@ def mobilenet_base(  # pylint: disable=invalid-name
     inputs,
     conv_defs,
     multiplier=1.0,
-    final_endpoint="layer_5",
+    final_endpoint="layer_14",
     output_stride=None,
     use_explicit_padding=False,
     scope=None,
@@ -315,7 +315,7 @@ def mobilenet(inputs,
               prediction_fn=slim.softmax,
               reuse=None,
               scope='Mobilenet',
-              base_only=False,
+              base_only=True,
               **mobilenet_args):
   """Mobilenet model for classification, supports both V1 and V2.
 

@@ -1,5 +1,11 @@
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 
+_init_xavier = tf.contrib.layers.xavier_initializer()
+_init_norm = tf.truncated_normal_initializer(stddev=0.01)
+_init_zero = slim.init_ops.zeros_initializer()
+_l2_regularizer_00004 = tf.contrib.layers.l2_regularizer(0.00004)
+_l2_regularizer_convb = tf.contrib.layers.l2_regularizer(0.004)
 
 class PafNet:
     def __init__(self, inputs_x, use_bn=False, mask_paf=None, mask_hm=None, gt_hm=None, gt_paf=None, stage_num=6, hm_channel_num=19, paf_channel_num=38):
@@ -135,27 +141,61 @@ class PafNet:
         net = self.conv2(inputs=net, filters=out_channel_num, padding='SAME', kernel_size=1, act=False, name=name+'_conv7')
         return net
 
-    def conv2(self, inputs, filters, padding, kernel_size, name, act=True, normalization=False):
-        channels_in = inputs[0, 0, 0, :].get_shape().as_list()[0]
-        with tf.variable_scope(name) as scope:
-            w = tf.get_variable('weights', shape=[kernel_size, kernel_size, channels_in, filters], trainable=True, initializer=tf.contrib.layers.xavier_initializer())
-            b = tf.get_variable('biases', shape=[filters], trainable=True, initializer=tf.contrib.layers.xavier_initializer())
-            conv = tf.nn.conv2d(inputs, w, strides=[1, 1, 1, 1], padding=padding)
-            output = tf.nn.bias_add(conv, b)
-            if normalization:
-                axis = list(range(len(output.get_shape()) - 1))
-                mean, variance = tf.nn.moments(conv, axes=axis)
-                scale = tf.Variable(tf.ones([filters]), name='scale')
-                beta = tf.Variable(tf.zeros([filters]), name='beta')
-                output = tf.nn.batch_normalization(output, mean, variance, offset=beta, scale=scale, variance_epsilon=0.0001)
-            if act:
-                output = tf.nn.relu(output, name=scope.name)
-        tf.summary.histogram('conv', conv)
-        tf.summary.histogram('weights', w)
-        tf.summary.histogram('biases', b)
-        tf.summary.histogram('output', output)
+    #     def conv2(self, inputs, filters, padding, kernel_size, name, act=True, normalization=False):
+    #         channels_in = inputs[0, 0, 0, :].get_shape().as_list()[0]
+    #         with tf.variable_scope(name) as scope:
+    #             w = tf.get_variable('weights', shape=[kernel_size, kernel_size, channels_in, filters], trainable=True, initializer=tf.contrib.layers.xavier_initializer())
+    #             b = tf.get_variable('biases', shape=[filters], trainable=True, initializer=tf.contrib.layers.xavier_initializer())
+    #             conv = tf.nn.conv2d(inputs, w, strides=[1, 1, 1, 1], padding=padding)
+    #             output = tf.nn.bias_add(conv, b)
+    #             if normalization:
+    #                 axis = list(range(len(output.get_shape()) - 1))
+    #                 mean, variance = tf.nn.moments(conv, axes=axis)
+    #                 scale = tf.Variable(tf.ones([filters]), name='scale')
+    #                 beta = tf.Variable(tf.zeros([filters]), name='beta')
+    #                 output = tf.nn.batch_normalization(output, mean, variance, offset=beta, scale=scale, variance_epsilon=0.0001)
+    #             if act:
+    #                 output = tf.nn.relu(output, name=scope.name)
+    #         tf.summary.histogram('conv', conv)
+    #         tf.summary.histogram('weights', w)
+    #         tf.summary.histogram('biases', b)
+    #         tf.summary.histogram('output', output)
+
+    #         return output
+    def separable_conv(self, input, k_h, k_w, c_o, stride, name, relu=True, set_bias=True):
+        with slim.arg_scope([slim.batch_norm], decay=0.999, fused=True):
+            output = slim.separable_convolution2d(input,
+                                                  num_outputs=None,
+                                                  stride=stride,
+                                                  trainable=True,
+                                                  depth_multiplier=1.0,
+                                                  kernel_size=[k_h, k_w],
+                                                  # activation_fn=common.activation_fn if relu else None,
+                                                  activation_fn=None,
+                                                  # normalizer_fn=slim.batch_norm,
+                                                  weights_initializer=_init_xavier,
+                                                  # weights_initializer=_init_norm,
+                                                  weights_regularizer=_l2_regularizer_00004,
+                                                  biases_initializer=None,
+                                                  padding='SAME',
+                                                  scope=name + '_depthwise')
+
+            output = slim.convolution2d(output,
+                                        c_o,
+                                        stride=1,
+                                        kernel_size=[1, 1],
+                                        activation_fn=tf.nn.relu,
+                                        weights_initializer=_init_xavier,
+                                        # weights_initializer=_init_norm,
+                                        biases_initializer=_init_zero if set_bias else None,
+                                        normalizer_fn=slim.batch_norm,
+                                        trainable=True,
+                                        weights_regularizer=None,
+                                        scope=name + '_pointwise')
 
         return output
+    def conv2(self, inputs, filters, padding, kernel_size, name, act=True, normalization=False):
+        return self.separable_conv(inputs, kernel_size, kernel_size, filters, 1, name)
 
     def gen_net(self):
         paf_pre = []

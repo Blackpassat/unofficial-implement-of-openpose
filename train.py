@@ -93,11 +93,23 @@ def train():
     # define vgg19
     # with slim.arg_scope(vgg.vgg_arg_scope()):
     #     vgg_outputs, end_points = vgg.vgg_19(img_normalized)
-    with slim.arg_scope(mobilenet_v2.training_scope(is_training=False)):
+    #     with slim.arg_scope(mobilenet_v2.training_scope(is_training=False)):
+    #         logits, endpoints = mobilenet_v2.mobilenet(img_normalized)
+    layers = {}
+    name = ""
+    with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):
         logits, endpoints = mobilenet_v2.mobilenet(img_normalized)
+        for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
+            layers['%s%s' % (name, k)] = tensor
+            print(k, tensor.shape)
+    def upsample(input, target):
+        return tf.image.resize_bilinear(input, tf.constant([target.shape[1].value, target.shape[2].value]), align_corners=False)
+    
+    mobilenet_feature = tf.concat([layers['layer_7/output'], upsample(layers['layer_14/output'], layers['layer_7/output'])], 3)
+    
     # pdb.set_trace()
     # get net graph
-    net = PafNet(inputs_x=logits, stage_num=args.stage_num, hm_channel_num=args.hm_channels, use_bn=args.use_bn)
+    net = PafNet(inputs_x=mobilenet_feature, stage_num=args.stage_num, hm_channel_num=args.hm_channels, use_bn=args.use_bn)
     hm_pre, paf_pre, added_layers_out = net.gen_net()
 
     # two kinds of loss
