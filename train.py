@@ -19,7 +19,7 @@ def train():
     parser.add_argument('--continue_training', type=bool, default=False)
     parser.add_argument('--checkpoint_path', type=str, default='checkpoints/train/')
     # parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/vgg/vgg_19.ckpt')
-    parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/mobilenet/mobilenet_v2_0.75_96.ckpt')
+    parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/mobilenet/mobilenet_v2_1.0_96.ckpt')
     parser.add_argument('--train_vgg', type=bool, default=True)
     parser.add_argument('--annot_path', type=str,
                         default='./COCO/annotations/')
