@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 from tensorflow.contrib import slim
 import vgg
+import mobilenet_v2
+import mobilenet
 from cpm import PafNet
 import common
 from tensblur.smoother import Smoother
@@ -21,9 +23,9 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Training codes for Openpose using Tensorflow')
-    parser.add_argument('--checkpoint_path', type=str, default='checkpoints/train/2018-12-13-16-56-49/')
-    parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/vgg/vgg_19.ckpt')
+    parser = argparse.ArgumentParser(description='Testing code for Openpose using Tensorflow')
+    parser.add_argument('--checkpoint_path', type=str, default='checkpoints/train/2019-3-23-19-39-4/')
+    parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/mobilenet/mobilenet_v2_1.0_96.ckpt')
     parser.add_argument('--image', type=str, default=None)
     # parser.add_argument('--run_model', type=str, default='img')
     parser.add_argument('--video', type=str, default=None)
@@ -37,22 +39,35 @@ if __name__ == '__main__':
     logger.info('checkpoint_path: ' + checkpoint_path)
 
     with tf.name_scope('inputs'):
-        raw_img = tf.placeholder(tf.float32, shape=[None, None, None, 3])
+        raw_img = tf.placeholder(tf.float32, shape=[None, 619, 654, 3])
         img_size = tf.placeholder(dtype=tf.int32, shape=(2,), name='original_image_size')
 
     img_normalized = raw_img / 255 - 0.5
 
-    # define vgg19
-    with slim.arg_scope(vgg.vgg_arg_scope()):
-        vgg_outputs, end_points = vgg.vgg_19(img_normalized)
-
+    # define mobilenet
+    #     with slim.arg_scope(vgg.vgg_arg_scope()):
+    #         vgg_outputs, end_points = vgg.vgg_19(img_normalized)
+    layers = {}
+    name = ""
+    with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):
+        logits, endpoints = mobilenet_v2.mobilenet(img_normalized)
+        for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
+            layers['%s%s' % (name, k)] = tensor
+            print(k, tensor.shape)
+    def upsample(input, target):
+        return tf.image.resize_bilinear(input, tf.constant([target.shape[1].value, target.shape[2].value]), align_corners=False)
+    
+    mobilenet_feature = tf.concat([layers['layer_7/output'], upsample(layers['layer_14/output'], layers['layer_7/output'])], 3)
+    
     # get net graph
     logger.info('initializing model...')
-    net = PafNet(inputs_x=vgg_outputs, use_bn=args.use_bn)
-    hm_pre, cpm_pre, added_layers_out = net.gen_net()
+    # net = PafNet(inputs_x=vgg_outputs, use_bn=args.use_bn)
+    # hm_pre, cpm_pre, added_layers_out = net.gen_net()
+    net = PafNet(inputs_x=mobilenet_feature, stage_num=6, hm_channel_num=19, use_bn=args.use_bn)
+    hm_pre, paf_pre, added_layers_out = net.gen_net()
 
     hm_up = tf.image.resize_area(hm_pre[5], img_size)
-    cpm_up = tf.image.resize_area(cpm_pre[5], img_size)
+    cpm_up = tf.image.resize_area(paf_pre[5], img_size)
     # hm_up = hm_pre[5]
     # cpm_up = cpm_pre[5]
     smoother = Smoother({'data': hm_up}, 25, 3.0)
@@ -67,20 +82,20 @@ if __name__ == '__main__':
     # trainable_var_list = []
     trainable_var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='openpose_layers')
     if args.train_vgg:
-        trainable_var_list = trainable_var_list + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='vgg_19')
+        trainable_var_list = trainable_var_list + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='MobilenetV2')
 
-    restorer = tf.train.Saver(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='vgg_19'), name='vgg_restorer')
+    restorer = tf.train.Saver(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='MobilenetV2'), name='mobilenet_restorer')
     saver = tf.train.Saver(trainable_var_list)
     logger.info('initialize session...')
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
         sess.run(tf.group(tf.global_variables_initializer()))
-        logger.info('restoring vgg weights...')
+        logger.info('restoring mobilenet weights...')
         restorer.restore(sess, args.backbone_net_ckpt_path)
         logger.info('restoring from checkpoint...')
         saver.restore(sess, tf.train.latest_checkpoint(checkpoint_dir=checkpoint_path))
-        # saver.restore(sess, args.checkpoint_path + 'model-55000.ckpt')
+        #saver.restore(sess, args.checkpoint_path + "model-8.ckpt")
         logger.info('initialization done')
         if args.image is None:
             if args.video is not None:
@@ -130,11 +145,12 @@ if __name__ == '__main__':
                 sys.exit(-1)        
             h = int(654 * (size[0] / size[1]))
             img = np.array(cv2.resize(image, (654, h)))
-            cv2.imshow('ini', img)
+            # cv2.imshow('ini', img)
             img = img[np.newaxis, :]
             peaks, heatmap, vectormap = sess.run([tensor_peaks, hm_up, cpm_up], feed_dict={raw_img: img, img_size: size})
-            cv2.imshow('in', vectormap[0, :, :, 0])
+            # cv2.imshow('in', vectormap[0, :, :, 0])
             bodys = PoseEstimator.estimate_paf(peaks[0], heatmap[0], vectormap[0])
             image = TfPoseEstimator.draw_humans(image, bodys, imgcopy=False)
-            cv2.imshow(' ', image)
+            # cv2.imshow(' ', image)
+            cv2.imwrite("result.png", image)
             cv2.waitKey(0)

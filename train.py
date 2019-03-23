@@ -101,7 +101,7 @@ def train():
         logits, endpoints = mobilenet_v2.mobilenet(img_normalized)
         for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
             layers['%s%s' % (name, k)] = tensor
-            print(k, tensor.shape)
+            # print(k, tensor.shape)
     def upsample(input, target):
         return tf.image.resize_bilinear(input, tf.constant([target.shape[1].value, target.shape[2].value]), align_corners=False)
     
