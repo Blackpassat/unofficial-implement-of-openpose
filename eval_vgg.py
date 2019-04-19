@@ -46,7 +46,7 @@ def round_int(val):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Testing code for Openpose using Tensorflow')
     parser.add_argument('--checkpoint_path', type=str, default='checkpoints/train_vgg/')
-    parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/mobilenet/mobilenet_v2_1.0_96.ckpt')
+    parser.add_argument('--backbone_net_ckpt_path', type=str, default='checkpoints/vgg/vgg_19.ckpt')
     parser.add_argument('--train_mobilenet', type=bool, default=True)
     parser.add_argument('--use_bn', type=bool, default=False)
     parser.add_argument('--image_path', type=str, default='./COCO/images/val2017/')
@@ -62,6 +62,7 @@ if __name__ == '__main__':
 
     img_normalized = raw_img / 255 - 0.5
 
+'''
     layers = {}
     name = ""
     with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):
@@ -73,12 +74,14 @@ if __name__ == '__main__':
         return tf.image.resize_bilinear(input, tf.constant([target.shape[1].value, target.shape[2].value]), align_corners=False)
     
     mobilenet_feature = tf.concat([layers['layer_7/output'], upsample(layers['layer_14/output'], layers['layer_7/output'])], 3)
-    
+'''    
+    with slim.arg_scope(vgg.vgg_arg_scope()):
+        vgg_outputs, end_points = vgg.vgg_19(img_normalized)
     # get net graph
     logger.info('initializing model...')
     # net = PafNet(inputs_x=vgg_outputs, use_bn=args.use_bn)
     # hm_pre, cpm_pre, added_layers_out = net.gen_net()
-    net = PafNet(inputs_x=mobilenet_feature, stage_num=6, hm_channel_num=19, use_bn=args.use_bn)
+    net = PafNet(inputs_x=vgg_outputs, stage_num=6, hm_channel_num=19, use_bn=args.use_bn)
     hm_pre, paf_pre, added_layers_out = net.gen_net()
 
     hm_up = tf.image.resize_area(hm_pre[5], img_size)
