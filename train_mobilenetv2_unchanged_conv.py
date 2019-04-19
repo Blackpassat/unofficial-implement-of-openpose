@@ -8,7 +8,7 @@ from tensorflow.contrib import slim
 import vgg
 import mobilenet_v2
 import mobilenet
-from cpm import PafNet
+from cpm_mobilenetv2_unchanged_conv import PafNet
 from pose_dataset import get_dataflow_batch, DataFlowToQueue, CocoPose
 from pose_augment import set_network_input_wh, set_network_scale
 import pdb
