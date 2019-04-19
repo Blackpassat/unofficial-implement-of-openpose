@@ -7,8 +7,6 @@ import cv2
 import numpy as np
 from tensorflow.contrib import slim
 import vgg
-import mobilenet_v2
-import mobilenet
 from cpm_vgg import PafNet
 import common
 from tensblur.smoother import Smoother
@@ -21,6 +19,7 @@ from tqdm import tqdm
 import os
 import json
 
+os.environ['CUDA_VISIBLE_DEVICES']="-1"
 logger = logging.getLogger('run')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
@@ -62,19 +61,6 @@ if __name__ == '__main__':
 
     img_normalized = raw_img / 255 - 0.5
 
-'''
-    layers = {}
-    name = ""
-    with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):
-        logits, endpoints = mobilenet_v2.mobilenet(img_normalized)
-        for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
-            layers['%s%s' % (name, k)] = tensor
-            print(k, tensor.shape)
-    def upsample(input, target):
-        return tf.image.resize_bilinear(input, tf.constant([target.shape[1].value, target.shape[2].value]), align_corners=False)
-    
-    mobilenet_feature = tf.concat([layers['layer_7/output'], upsample(layers['layer_14/output'], layers['layer_7/output'])], 3)
-'''    
     with slim.arg_scope(vgg.vgg_arg_scope()):
         vgg_outputs, end_points = vgg.vgg_19(img_normalized)
     # get net graph
@@ -82,6 +68,7 @@ if __name__ == '__main__':
     # net = PafNet(inputs_x=vgg_outputs, use_bn=args.use_bn)
     # hm_pre, cpm_pre, added_layers_out = net.gen_net()
     net = PafNet(inputs_x=vgg_outputs, stage_num=6, hm_channel_num=19, use_bn=args.use_bn)
+    
     hm_pre, paf_pre, added_layers_out = net.gen_net()
 
     hm_up = tf.image.resize_area(hm_pre[5], img_size)
@@ -100,9 +87,9 @@ if __name__ == '__main__':
     # trainable_var_list = []
     trainable_var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='openpose_layers')
     if args.train_mobilenet:
-        trainable_var_list = trainable_var_list + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='MobilenetV2')
+        trainable_var_list = trainable_var_list + tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='vgg_19')
 
-    restorer = tf.train.Saver(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='MobilenetV2'), name='mobilenet_restorer')
+    restorer = tf.train.Saver(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='vgg_19'), name='vgg_restorer')
     saver = tf.train.Saver(trainable_var_list)
     logger.info('initialize session...')
     config = tf.ConfigProto()
@@ -110,11 +97,12 @@ if __name__ == '__main__':
 
     with tf.Session(config=config) as sess:
         sess.run(tf.group(tf.global_variables_initializer()))
-        logger.info('restoring mobilenet weights...')
+        logger.info('restoring vgg weights...')
         restorer.restore(sess, args.backbone_net_ckpt_path)
         logger.info('restoring from checkpoint...')
-        saver.restore(sess, "./checkpoints/train/2019-3-23-19-39-4/model-12000")
+        #saver.restore(sess, "./checkpoints/train/2019-3-23-19-39-4/model-12000")
         #saver.restore(sess, args.checkpoint_path + "model-8.ckpt")
+        saver.restore(sess, tf.train.latest_checkpoint(args.checkpoint_path))
         logger.info('initialization done')
 
         ## variables for file namess etc
@@ -175,4 +163,4 @@ if __name__ == '__main__':
         print(''.join(["%11.4f |" % x for x in cocoEval.stats]))
 
         pred = json.load(open(write_json, 'r'))
-        pdb.set_trace()
+        # pdb.set_trace()

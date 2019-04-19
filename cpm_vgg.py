@@ -189,8 +189,8 @@ class PafNet:
         hm_pre = []
         with tf.variable_scope('openpose_layers'):
             with tf.variable_scope('cpm_layers'):
-                # added_layers_out = self.add_layers(inputs=self.inputs_x)
-                added_layers_out = self.inputs_x
+                added_layers_out = self.add_layers(inputs=self.inputs_x)
+                #added_layers_out = self.inputs_x
 
             with tf.variable_scope('stage1'):
                 paf_net = self.stage_1(inputs=added_layers_out, out_channel_num=self.paf_channel_num, name='stage1_paf')
