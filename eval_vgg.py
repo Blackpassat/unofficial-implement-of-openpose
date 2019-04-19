@@ -9,7 +9,7 @@ from tensorflow.contrib import slim
 import vgg
 import mobilenet_v2
 import mobilenet
-from cpm import PafNet
+from cpm_vgg import PafNet
 import common
 from tensblur.smoother import Smoother
 from estimator import PoseEstimator, TfPoseEstimator
