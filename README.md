@@ -15,10 +15,10 @@ Download COCO 2017 dataset from their official website [COCO download]: http://c
 Place downloaded feature in the following directory (not exist):
 
 -COCO/
-    -images/
-        -train/
-        -val/
-    -annotations/
+  -images/
+    -train/
+    -val/
+  -annotations/
 
 
 ### Necessary Packages
