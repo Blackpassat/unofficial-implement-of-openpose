@@ -1,7 +1,7 @@
 # RealM: Real-time Multi-Person Pose Estimation network with low computational complexity
 
 ## Acknowledge
-Code structure from Gtihub Repo [here]: https://github.com/YangZeyu95/unofficial-implement-of-openpose]. Thanks to Zeyu's work!
+Code structure from Gtihub Repo [here](https://github.com/YangZeyu95/unofficial-implement-of-openpose). Thanks to Zeyu's work!
 
 This is our EECS 598 deep learn final project, for study and research use only. 
 
@@ -10,7 +10,7 @@ Shiyu Wang, Peng Xue, Xinyu Gao, Siyuan Xie
 
 ## Configuration
 ### Dataset
-Download COCO 2017 dataset from their official website [COCO download]: http://cocodataset.org/#download]
+Download COCO 2017 dataset from their official website [COCO download](http://cocodataset.org/#download).
 
 Place downloaded feature in the following directory (not exist):
 ```
@@ -43,8 +43,8 @@ In pafprocess folder:
 Using the following folder directory
 ```
 -checkpoints
-  -vgg # vgg19 pretrain model download [here]: http://download.tensorflow.org/models/vgg_19_2016_08_28.tar.gz
-  -mobilenet # mobilenet model download [here]: https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.0_96.tgz
+  -vgg # vgg19 pretrain model download  (http://download.tensorflow.org/models/vgg_19_2016_08_28.tar.gz)
+  -mobilenet # mobilenet model download (https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.0_96.tgz)
   -train # your training directory
 ```
 
