@@ -4,6 +4,7 @@ import multiprocessing
 import struct
 import sys
 import threading
+import pdb
 
 try:
     from StringIO import StringIO
@@ -118,8 +119,8 @@ class CocoMetadata:
         heatmap[:, :, -1] = np.clip(1 - np.amax(heatmap, axis=2), 0.0, 1.0)
 
         if target_size:
-            heatmap = cv2.resize(heatmap, target_size, interpolation=cv2.INTER_AREA)
-
+            heatmap = cv2.resize(heatmap, target_size)
+            
         return heatmap.astype(np.float16)
 
     @staticmethod
@@ -170,7 +171,7 @@ class CocoMetadata:
             vectormap[y][x][p*2+1] /= countmap[p][y][x]
 
         if target_size:
-            vectormap = cv2.resize(vectormap, target_size, interpolation=cv2.INTER_AREA)
+            vectormap = cv2.resize(vectormap, target_size)
 
         return vectormap.astype(np.float16)
 
@@ -261,7 +262,7 @@ class CocoPose(RNGDataFlow):
     def get_bgimg(inp, target_size=None):
         inp = cv2.cvtColor(inp.astype(np.uint8), cv2.COLOR_BGR2RGB)
         if target_size:
-            inp = cv2.resize(inp, target_size, interpolation=cv2.INTER_AREA)
+            inp = cv2.resize(inp, target_size)
         return inp
 
     def __init__(self, path, img_path=None, is_train=True, decode_img=True, only_idx=-1):
@@ -273,7 +274,7 @@ class CocoPose(RNGDataFlow):
             whole_path = os.path.join(path, 'person_keypoints_train2017.json')
         else:
             whole_path = os.path.join(path, 'person_keypoints_val2017.json')
-        self.img_path = (img_path if img_path is not None else '') + ('train2017/' if is_train else 'val2017/')
+        self.img_path = (img_path if img_path is not None else '') + ('images/train2017/' if is_train else 'images/val2017/')
         self.coco = COCO(whole_path)
 
         logger.info('%s dataset %d' % (path, self.size()))
@@ -473,7 +474,7 @@ if __name__ == '__main__':
     set_network_scale(8)
 
     # df = get_dataflow('/data/public/rw/coco/annotations', True, '/data/public/rw/coco/')
-    df = _get_dataflow_onlyread('/data/public/rw/coco/annotations', True, '/data/public/rw/coco/')
+    df = _get_dataflow_onlyread('./COCO/annotations/', True, './COCO/')
     # df = get_dataflow('/root/coco/annotations', False, img_path='http://gpu-twg.kakaocdn.net/braincloud/COCO/')
 
     from tensorpack.dataflow.common import TestDataSpeed

@@ -1,49 +1,32 @@
-# Unofficial-Implement-of-Openpose
-<p align="left">
-<img src="https://github.com/YangZeyu95/unofficial-implement-of-openpose/blob/master/readme/IMG_4063.GIF", width="720">
-</p>　　
+# RealM: Real-time Multi-Person Pose Estimation network with low computational complexity
 
-You can check the full result on [YouTube](https://youtu.be/v-CC0g7whTs) or [bilibili](https://www.bilibili.com/video/av38475550/)　　
+## Acknowledge
+Code structure from Gtihub Repo: [https://github.com/YangZeyu95/unofficial-implement-of-openpose]. Thanks to Zeyu's work!
+This is our EECS 598 deep learn final project, for study and research use only. 
 
-An easy implement of openpose using TensorFlow.
+## Author
+Shiyu Wang, Peng Xue, Xinyu Gao, Siyuan Xie
 
-Only basic python is used, so the code is easy to understand.
+## Configuration
+### Dataset
+Download COCO 2017 dataset from their official website [http://cocodataset.org/#download]
+Place downloaded feature in the following directory (not exist):
+-COCO
+    -images
+        -train
+        -val
+    -annotations
 
-You can check the graph, internal outputs of every stage and histogram of every layer in tensorboard.
+### Necessary Packages
+via pip: requests, cv2, tensorflow, tensorpack, pycocotools, matplotlib
 
-Original Repo(Caffe) : https://github.com/CMU-Perceptual-Computing-Lab/openpose.
+Also, you need to install swig:
+on Linux: '''apt-get install swig'''
+on Mac: '''brew install swig'''
 
-The Dataloader and Post-processing code is from [tf-pose-estimation](https://github.com/ildoonet/tf-pose-estimation).
+Install post-processing module:
+In pafprocess folder: 
+'''swig -python -c++ pafprocess.i && python3 setup.py build_ext --inplace'''
 
-Python 3.6　　
-<p align="left">
-<img src="https://github.com/YangZeyu95/unofficial-implement-of-openpose/blob/master/readme/graph_run%3D.png", width="720">
-</p>　
-
-## Training
-1. Download vgg19 weights file [here](http://download.tensorflow.org/models/vgg_19_2016_08_28.tar.gz) or 链接: https://pan.baidu.com/s/1ZxWKVPe4hrEhDxOpjLiUKA 提取码: widj and uzip to 'checkpoints/vgg/' (please create the path yourself).
-2. Download COCO2017: 2017 Train images, 2017 Val images and 2017 Train/Val annotations [here](http://cocodataset.org/#download).  
-make sure have this structure:  
--COCO/  
-　-images/  
-　　-train2017/  
-　　-val2017/  
-　-annotations/    
-
-3. Specify '--annot_path_train' and '--img_path_train' in train.py to your own 'COCO/annotations/' and 'COCO/images/'.
-4. run train.py `python train.py` and install requirements follow the error and run again.
-<p align="left">
-<img src="https://github.com/YangZeyu95/unofficial-implement-of-openpose/blob/master/readme/loss2.svg", width="720">
-</p>　　
-　
-
-## Test
-Specify --checkpoint_path to the folder includes checkpoint files in run.py.　　
-
-+ running on webcam `python run.py`　　
-+ running on video `python run.py --video images/video.avi`　　
-+ running on image`python run.py --image images/ski.jpg`　　
-
-pretrained model on COCO 2017 is available [here](https://drive.google.com/drive/folders/1wQp6tU3xOyO4FF54YZShEmLuwsGLVAQA?usp=sharing) or 链接: https://pan.baidu.com/s/1FX-_YJQFwPRd0ECvVDli6Q 提取码: xwnk, this checkpoint includes fine-tuned vgg weights.　　
-
-
+### Data Augmentation
+'''python pose_dataset.py'''
