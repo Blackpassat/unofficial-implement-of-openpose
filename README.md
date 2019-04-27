@@ -13,13 +13,13 @@ Shiyu Wang, Peng Xue, Xinyu Gao, Siyuan Xie
 Download COCO 2017 dataset from their official website [COCO download]: http://cocodataset.org/#download]
 
 Place downloaded feature in the following directory (not exist):
-`
--COCO
-    -images
-        -train
-        -val
-    -annotations
-`
+
+-COCO/
+    -images/
+        -train/
+        -val/
+    -annotations/
+
 
 ### Necessary Packages
 via pip: requests, cv2, tensorflow, tensorpack, pycocotools, matplotlib
